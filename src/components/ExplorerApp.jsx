@@ -102,13 +102,14 @@ export function ExplorerApp({ initialPath = 'libraries', onOpenApp, onTitleChang
       navigateTo(item.navigate)
       return
     }
-    if (item.open === 'notepad') {
-      onOpenApp?.('notepad')
-      return
-    }
-    if (item.open === 'photos') {
-      onOpenApp?.('photos')
-    }
+    if (!item.open) return
+    const options = {}
+    if (item.path) options.path = item.path
+    if (item.documentId) options.documentId = item.documentId
+    if (item.imageId) options.imageId = item.imageId
+    if (item.trackId) options.trackId = item.trackId
+    if (item.imageSrc) options.imageSrc = item.imageSrc
+    onOpenApp?.(item.open, options)
   }
 
   const crumbs = useMemo(() => {

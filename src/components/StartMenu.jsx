@@ -25,9 +25,14 @@ export function StartMenu({ open, onOpenApp, onShutdown }) {
                   type="button"
                   className="start-item"
                   role="menuitem"
-                  onClick={() =>
-                    onOpenApp(item.app, item.path ? { path: item.path } : undefined)
-                  }
+                  onClick={() => {
+                    const options = {}
+                    if (item.path) options.path = item.path
+                    if (item.documentId) options.documentId = item.documentId
+                    if (item.imageId) options.imageId = item.imageId
+                    if (item.trackId) options.trackId = item.trackId
+                    onOpenApp(item.app, Object.keys(options).length ? options : undefined)
+                  }}
                 >
                   <img src={ICON[item.icon]} alt="" draggable={false} />
                   {item.label}

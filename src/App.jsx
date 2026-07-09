@@ -1,5 +1,12 @@
 import { useCallback, useState } from 'react'
-import { APPS, DESKTOP_ICONS, EXPLORER_LOCATIONS } from './data'
+import {
+  APPS,
+  DESKTOP_ICONS,
+  EXPLORER_LOCATIONS,
+  NOTEPAD_DOCUMENTS,
+  PHOTO_IMAGES,
+  MUSIC_TRACKS,
+} from './data'
 import { BootScreen } from './components/BootScreen'
 import { DesktopIcons } from './components/DesktopIcons'
 import { WinWindow } from './components/WinWindow'
@@ -8,13 +15,39 @@ import { StartMenu } from './components/StartMenu'
 import {
   AboutApp,
   DialogApp,
+  MediaPlayerApp,
   NotepadApp,
+  PaintApp,
   PhotosApp,
   RecycleApp,
 } from './components/Apps'
 import { ExplorerApp } from './components/ExplorerApp'
 
 let zCounter = 20
+
+function resolveTitle(appId, options = {}, fallback) {
+  if (appId === 'explorer' && options.path) {
+    return EXPLORER_LOCATIONS[options.path]?.title || fallback
+  }
+  if (appId === 'notepad') {
+    const doc = NOTEPAD_DOCUMENTS[options.documentId] || NOTEPAD_DOCUMENTS.remember
+    return `${doc.title} - Notepad`
+  }
+  if (appId === 'photos') {
+    const img = PHOTO_IMAGES[options.imageId] || PHOTO_IMAGES.broken
+    return img.broken || !img.src
+      ? 'Windows Photo Viewer'
+      : `${img.title} - Windows Photo Viewer`
+  }
+  if (appId === 'wmp') {
+    const track = MUSIC_TRACKS.find((t) => t.id === options.trackId)
+    return track ? `${track.title} - Windows Media Player` : 'Windows Media Player'
+  }
+  if (appId === 'paint') {
+    return options.imageSrc ? 'Picture - Paint' : 'Untitled - Paint'
+  }
+  return fallback
+}
 
 export default function App() {
   const [selectedIcon, setSelectedIcon] = useState(null)
@@ -24,11 +57,12 @@ export default function App() {
 
   const openApp = useCallback((appId, options = {}) => {
     setStartOpen(false)
-    const path = options.path
+    const { path, documentId, imageId, trackId, imageSrc } = options
     setWindows((prev) => {
       const existing = prev.find((w) => w.id === appId)
       if (existing) {
         zCounter += 1
+        const title = resolveTitle(appId, options, existing.title)
         return prev.map((w) =>
           w.id === appId
             ? {
@@ -36,8 +70,15 @@ export default function App() {
                 minimized: false,
                 zIndex: zCounter,
                 active: true,
-                ...(path ? { path, title: EXPLORER_LOCATIONS[path]?.title || w.title } : {}),
-                navKey: path ? (w.navKey || 0) + 1 : w.navKey,
+                title,
+                ...(path !== undefined
+                  ? { path, navKey: (w.navKey || 0) + 1 }
+                  : {}),
+                ...(documentId !== undefined ? { documentId } : {}),
+                ...(imageId !== undefined ? { imageId } : {}),
+                ...(trackId !== undefined ? { trackId } : {}),
+                ...(imageSrc !== undefined ? { imageSrc } : {}),
+                contentKey: (w.contentKey || 0) + 1,
               }
             : { ...w, active: false },
         )
@@ -45,17 +86,19 @@ export default function App() {
       const def = APPS[appId]
       if (!def) return prev
       zCounter += 1
-      const title =
-        appId === 'explorer' && path
-          ? EXPLORER_LOCATIONS[path]?.title || def.title
-          : def.title
+      const title = resolveTitle(appId, options, def.title)
       return [
         ...prev.map((w) => ({ ...w, active: false })),
         {
           ...def,
           title,
           path: path ?? def.path,
+          documentId: documentId ?? def.documentId,
+          imageId: imageId ?? def.imageId,
+          trackId: trackId ?? def.trackId,
+          imageSrc: imageSrc ?? def.imageSrc,
           navKey: 0,
+          contentKey: 0,
           minimized: false,
           zIndex: zCounter,
           active: true,
@@ -115,9 +158,33 @@ export default function App() {
   const renderApp = (win) => {
     switch (win.id) {
       case 'notepad':
-        return <NotepadApp />
+        return (
+          <NotepadApp
+            key={`notepad-${win.contentKey}-${win.documentId || 'remember'}`}
+            documentId={win.documentId || 'remember'}
+          />
+        )
       case 'photos':
-        return <PhotosApp />
+        return (
+          <PhotosApp
+            key={`photos-${win.contentKey}-${win.imageId || 'broken'}`}
+            imageId={win.imageId || 'broken'}
+          />
+        )
+      case 'wmp':
+        return (
+          <MediaPlayerApp
+            key={`wmp-${win.contentKey}-${win.trackId || 'harmony'}`}
+            trackId={win.trackId || 'harmony'}
+          />
+        )
+      case 'paint':
+        return (
+          <PaintApp
+            key={`paint-${win.contentKey}-${win.imageSrc || 'blank'}`}
+            imageSrc={win.imageSrc}
+          />
+        )
       case 'explorer':
         return (
           <ExplorerApp

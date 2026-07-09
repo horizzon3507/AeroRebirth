@@ -14,7 +14,12 @@ export function DesktopIcons({ icons, selected, onSelect, onOpen }) {
           }}
           onDoubleClick={(e) => {
             e.stopPropagation()
-            onOpen(icon.app, icon.path ? { path: icon.path } : undefined)
+            const options = {}
+            if (icon.path) options.path = icon.path
+            if (icon.documentId) options.documentId = icon.documentId
+            if (icon.imageId) options.imageId = icon.imageId
+            if (icon.trackId) options.trackId = icon.trackId
+            onOpen(icon.app, Object.keys(options).length ? options : undefined)
           }}
         >
           <img
